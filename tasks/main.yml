@@ -1,0 +1,22 @@
+---
+- name: Create local drop directory 
+  ansible.builtin.file:
+    path: "{{ tls_certificate_working_dir }}"
+    state: directory  
+
+- ansible.builtin.include_tasks: create-ca.yaml
+  when: tls_certificate_ca_create
+
+- ansible.builtin.include_tasks: generate-cert.yaml
+  with_items: "{{ tls_certificate_certs_list }}"
+
+# Create certs for the docker daemon 
+
+
+    # - name: Create a keystore for the given certificate/private key pair (with files on controller)
+    #   community.general.java_keystore:
+    #     name: docker-jenkins
+    #     certificate: "{{ tls_local_dir }}/{{ server_hostname }}_cert.pem"
+    #     private_key: "{{ tls_local_dir }}/{{ server_hostname }}_privkey.pem"
+    #     password: changeit
+    #     dest: "{{ tls_local_dir }}/{{ server_hostname }}.jks"

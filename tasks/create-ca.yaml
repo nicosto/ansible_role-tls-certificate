@@ -1,0 +1,35 @@
+# Create a private CA authority for signing the TLS certificates 
+- name: Generate an OpenSSL CA private key
+  community.crypto.openssl_privatekey:
+    path: "{{ tls_certificate_ca_key_path }}"
+    size: "{{ tls_certificate_key_size }}"
+    type: "{{ tls_certificate_key_type }}"
+    # passphrase: "{{ tls_certificate_ca_passphrase | default () }}"
+    # cipher: "{{ tls_certificate_ca_cipher }}"
+    backup: yes
+  register: ca_key
+
+- name: Create the CA CSR
+  community.crypto.openssl_csr:
+    path: "{{ tls_certificate_ca_csr_path }}"
+    privatekey_path: "{{ ca_key.filename }}"
+    # privatekey_passphrase: "{{ tls_certificate_ca_passphrase | default () }}"
+    common_name: "{{ tls_certificate_ca_name }}"
+  register: ca_csr
+  when: ca_key.changed
+
+- name: Sign the CA CSR
+  community.crypto.x509_certificate:
+    path: "{{ tls_certificate_ca_crt_path }}"
+    csr_path: "{{ ca_csr.filename }}"
+    privatekey_path: "{{ ca_key.filename }}"
+    # privatekey_passphrase: "{{ tls_certificate_ca_passphrase | default () }}"
+    provider: selfsigned
+  register: ca_crt
+  when: ca_csr.changed
+
+- name: Cleaning up
+  ansible.builtin.file:
+    path: "{{ ca_csr.filename }}"
+    state: absent
+  when: ca_key.changed

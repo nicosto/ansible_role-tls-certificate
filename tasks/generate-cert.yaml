@@ -1,0 +1,72 @@
+---
+- name: Generate an OpenSSL private key for {{ item.hostname }}
+  community.crypto.openssl_privatekey:
+    path: "{{ tls_certificate_working_dir }}/{{ item.hostname }}.key"
+    size: "{{ tls_certificate_key_size }}"
+    type: "{{ tls_certificate_key_type }}"
+    backup: yes
+  register: ca_key
+
+- block:
+  - set_fact:
+      extra_subject_alt_name:
+        - IP:127.0.0.1
+        - "DNS:{{ item.hostname }}"
+        
+  - set_fact:
+      full_subject_alt_name: "{{ extra_subject_alt_name }}"
+    when: subject_alt_name is not defined
+
+  - set_fact:
+      full_subject_alt_name: "{{ subject_alt_name + extra_subject_alt_name }} "
+    when: subject_alt_name is defined
+
+  - name: Generate an OpenSSL Certificate Signing Request with Subject information {{ item.hostname }}
+    community.crypto.openssl_csr:
+      path: "{{ tls_certificate_working_dir }}/{{ item.hostname }}.csr"
+      privatekey_path: "{{ ca_key.filename }}"
+      country_name: "{{ country_name }}"
+      organization_name: "{{ organization_name }}"
+      email_address: "{{ email_address }}"
+      common_name: "{{ item.hostname }}"
+      organizational_unit_name: "{{ organizational_unit_name }}"
+      locality_name: "{{ locality_name }}"
+      state_or_province_name: "{{ state_or_province_name }}"
+      subject_alt_name:
+        "{{ full_subject_alt_name }}"
+      extended_key_usage:
+        "{{ item.extended_key_usage }}"
+    when: item.extended_key_usage is defined
+
+  - name: Generate an OpenSSL Certificate Signing Request with Subject information {{ item.hostname }}
+    community.crypto.openssl_csr:
+      path: "{{ tls_certificate_working_dir }}/{{ item.hostname }}.csr"
+      privatekey_path: "{{ ca_key.filename }}"
+      country_name: "{{ country_name }}"
+      organization_name: "{{ organization_name }}"
+      email_address: "{{ email_address }}"
+      common_name: "{{ item.hostname }}"
+      organizational_unit_name: "{{ organizational_unit_name }}"
+      locality_name: "{{ locality_name }}"
+      state_or_province_name: "{{ state_or_province_name }}"
+      subject_alt_name:
+        "{{ full_subject_alt_name }}"
+    when: not item.extended_key_usage is defined
+
+  when: ca_key.changed
+
+- name: Generate a Self Signed OpenSSL certificate for {{ item.hostname }}
+  community.crypto.x509_certificate:
+    path: "{{ tls_certificate_working_dir }}/{{ item.hostname }}.crt"
+    privatekey_path: "{{ ca_key.filename }}"
+    csr_path: "{{ tls_certificate_working_dir }}/{{ item.hostname }}.csr"
+    provider: ownca
+    ownca_path: "{{ tls_certificate_ca_crt_path }}"
+    ownca_privatekey_path: "{{ tls_certificate_ca_key_path }}"
+  when: ca_key.changed
+
+- name: Cleaning up, removing CSR
+  ansible.builtin.file:
+    path: "{{ tls_certificate_working_dir }}/{{ item.hostname }}.csr"
+    state: absent
+  when: ca_key.changed

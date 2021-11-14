@@ -1,0 +1,51 @@
+---
+# defaults file for tls
+
+# key details
+tls_certificate_key_size: 4096
+tls_certificate_key_type: RSA # Others include DSA, ECC, Ed25519, Ed448, X25519, X448
+
+email_address: cert@hexample.com
+organization_name: 'The Example.com Company'
+organizational_unit_name: 'My Unit'
+locality_name: 'Palo Alto'
+state_or_province_name: 'California'
+country_name: 'US'
+
+tls_certificate_ca_name: 'my-ca'
+
+tls_certificate_working_dir: ./certificates
+tls_certificate_ca_create: true
+tls_certificate_ca_key_path: "{{ tls_certificate_working_dir }}/{{ tls_certificate_ca_name }}_ca.key"
+tls_certificate_ca_csr_path: "{{ tls_certificate_working_dir }}/{{ tls_certificate_ca_name }}_ca.csr"
+tls_certificate_ca_crt_path: "{{ tls_certificate_working_dir }}/{{ tls_certificate_ca_name }}_ca.crt"
+tls_certificate_ca_passphrase: 
+tls_certificate_ca_cipher: aes256
+tls_certificate_passphrase: 
+
+tls_certificate_certs_list: []
+  - hostname: host1.example.com
+
+  - hostname: host2.example.com
+    subject_alt_name:
+      - IP:192.168.1.20
+      - DNS:host1-alias.example.com
+    extended_key_usage:
+      - serverAuth
+
+  - hostname: host3.example.com
+    extended_key_usage:
+      - clientAuth
+
+  - hostname: host4.example.com
+    subject_alt_name:
+      - IP:192.168.1.10
+      - DNS:host4-alias.example.com
+
+
+
+# ### Install with pip2 ###
+# sudo pip install pyOpenSSL
+
+# ### Install with pip3 ###
+# sudo pip3 install pyOpenSSL
